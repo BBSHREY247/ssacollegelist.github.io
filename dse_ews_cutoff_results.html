@@ -1,0 +1,344 @@
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+  <title>Document</title>
+</head>
+
+<body>
+
+  <h2 class="sr-only">DSE CAP Round 1 colleges with CS/IT courses where EWS cutoff is at or below Shreyash's 84.24%
+    aggregate</h2>
+
+  <div class="header">
+    <div style="font-size:16px;font-weight:500;color:var(--color-text-primary)">DSE CAP Round I — CS/IT colleges within
+      your EWS reach</div>
+    <div class="meta">
+      <span class="badge badge-info">Your marks: 84.24% aggregate</span>
+      <span class="badge badge-success">EWS category</span>
+      <span class="badge badge-warn">AY 2025-26 cutoffs</span>
+    </div>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat">
+      <div class="stat-label">Eligible colleges</div>
+      <div class="stat-val" id="cnt-col">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Course options</div>
+      <div class="stat-val" id="cnt-crs">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Within 2% of cutoff</div>
+      <div class="stat-val" id="cnt-close">—</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <input type="text" id="search" placeholder="Search college name…" oninput="render()">
+    <select id="sort-sel" onchange="render()">
+      <option value="desc">Highest EWS cutoff first</option>
+      <option value="asc">Lowest EWS cutoff first</option>
+    </select>
+    <select id="course-filter" onchange="render()">
+      <option value="">All courses</option>
+    </select>
+  </div>
+
+  <div class="legend">
+    <span><span class="leg-dot" style="background:#1D9E75"></span>Comfortable (≥82%)</span>
+    <span><span class="leg-dot" style="background:#EF9F27"></span>Close (78–82%)</span>
+    <span><span class="leg-dot" style="background:#E24B4A"></span>Lower competition (&lt;78%)</span>
+  </div>
+
+  <div id="list"></div>
+  <div class="pagination">
+    <span class="page-info" id="page-info"></span>
+    <div class="page-btns">
+      <button id="btn-prev" onclick="changePage(-1)">← Prev</button>
+      <button id="btn-next" onclick="changePage(1)">Next →</button>
+    </div>
+  </div>
+
+  <script>
+    const MY_PCT = 84.24;
+    const PER_PAGE = 15;
+    let currentPage = 0;
+    let expanded = {};
+
+    const RAW = [
+      { college: "2282 Aditya Education Trusts Mitthulalji Sarada Polytechnic, Beed", courses: [{ name: "Computer Engineering", pct: 84.23 }, { name: "Electronics and Computer Science", pct: 64.59 }] },
+      { college: "4167 Yeshwantrao Chavan College of Engineering, Nagpur (Un-Aided Autonomous)", courses: [{ name: "Computer Science and Engineering (IoT)", pct: 84.11 }, { name: "Computer Science and Design", pct: 83.31 }] },
+      { college: "6732 Ajeenkya DY Patil School of Engineering, Lohegaon, Pune", courses: [{ name: "Computer Engineering", pct: 84.06 }, { name: "Artificial Intelligence and Data Science", pct: 82.69 }] },
+      { college: "6811 Sanjay Ghodawat Institute", courses: [{ name: "Computer Science and Engineering", pct: 84.06 }] },
+      { college: "6268 Tatyasaheb Kore Institute of Engineering and Technology, Warananagar (Un-Aided Autonomous)", courses: [{ name: "Computer Science and Engineering", pct: 83.94 }, { name: "Computer Science and Business Systems", pct: 82.69 }] },
+      { college: "2136 Aditya Engineering College, Beed", courses: [{ name: "Computer Science and Engineering", pct: 83.89 }, { name: "Artificial Intelligence and Machine Learning", pct: 63.26 }] },
+      { college: "6184 KJs Educational Institute Trinity College of Engineering and Research, Pisoli, Pune", courses: [{ name: "Computer Engineering", pct: 83.77 }, { name: "Information Technology", pct: 76.91 }] },
+      { college: "5160 Sanjivani College of Engineering, Kopargaon (Un-Aided Autonomous)", courses: [{ name: "Information Technology", pct: 83.71 }, { name: "Electronics and Computer Engineering", pct: 81.26 }] },
+      { college: "5108 MVPs Karmaveer Adv. Baburao Thakare College Of Engineering, Nashik (Un-Aided Autonomous)", courses: [{ name: "Artificial Intelligence (AI) and Data Science", pct: 83.6 }] },
+      { college: "6317 Sharad Institute of Technology College of Engineering, Yadrav (Un-Aided Autonomous)", courses: [{ name: "Computer Science and Engineering", pct: 83.54 }, { name: "Electronics and Computer Engineering", pct: 81.94 }] },
+      { college: "1105 Prof. Ram Meghe Institute of Technology & Research, Amravati (Un-Aided Autonomous)", courses: [{ name: "Computer Science and Engineering", pct: 83.49 }, { name: "Information Technology", pct: 82.47 }, { name: "Artificial Intelligence (AI) and Data Science", pct: 77.09 }, { name: "Computer Science and Engineering (IoT)", pct: 73.84 }] },
+      { college: "3035 Usha Mittal Institute of Technology SNDT Womens University, Mumbai", courses: [{ name: "Computer Engineering", pct: 83.49 }, { name: "Information Technology", pct: 75.94 }, { name: "Data Science", pct: 72.38 }, { name: "Computer Science and Technology", pct: 69.69 }] },
+      { college: "5104 Shramsadhana Bombay Trust College of Engineering & Technology, Jalgaon", courses: [{ name: "Computer Engineering", pct: 83.49 }] },
+      { college: "6755 JSPM Narhe Technical Campus, Pune", courses: [{ name: "Artificial Intelligence (AI) and Data Science", pct: 83.47 }] },
+      { college: "6311 Jayawant Shikshan Prasarak Mandal, Bhivarabai Sawant Institute of Technology & Research, Wagholi", courses: [{ name: "Information Technology", pct: 83.43 }] },
+      { college: "3154 Saraswati College of Engineering, Kharghar, Navi Mumbai", courses: [{ name: "Computer Science and Engineering (AI & ML)", pct: 83.31 }, { name: "Computer Engineering", pct: 74.28 }, { name: "Information Technology", pct: 70.94 }] },
+      { college: "2533 CSMSS Chh. Shahu College of Engineering, Aurangabad", courses: [{ name: "Artificial Intelligence and Data Science", pct: 83.28 }, { name: "Electronics and Computer Engineering", pct: 67.14 }] },
+      { college: "2113 GS Mandals Maharashtra Institute of Technology, Aurangabad (Un-Aided Autonomous)", courses: [{ name: "Artificial Intelligence (AI) and Data Science", pct: 83.22 }, { name: "Computer Science and Design", pct: 76.0 }, { name: "Electronics and Computer Engineering", pct: 57.72 }] },
+      { college: "6179 Indira College of Engineering & Management, Pune (Un-Aided Autonomous)", courses: [{ name: "Computer Engineering", pct: 83.2 }, { name: "Information Technology", pct: 82.11 }, { name: "Artificial Intelligence and Data Science", pct: 79.89 }] },
+      { college: "6122 TSSMSs Pd. Vasantdada Patil Institute of Technology, Bavdhan, Pune", courses: [{ name: "Computer Science and Engineering (Data Science)", pct: 83.14 }, { name: "Computer Engineering", pct: 79.49 }] },
+      { college: "6298 Zeal College of Engineering & Research, Narhe, Pune (Un-Aided Autonomous)", courses: [{ name: "Computer Engineering", pct: 83.09 }, { name: "Information Technology", pct: 80.6 }, { name: "Artificial Intelligence and Machine Learning", pct: 78.69 }, { name: "Artificial Intelligence and Data Science", pct: 78.53 }, { name: "Electronics and Computer Engineering", pct: 74.06 }] },
+      { college: "6321 Vidya Vikas Pratishthan Institute of Engineering and Technology, Solapur", courses: [{ name: "Computer Science and Engineering", pct: 83.03 }] },
+      { college: "6326 Karmayogi Institute of Technology", courses: [{ name: "Computer Science and Engineering", pct: 83.03 }] },
+      { college: "2134 Peoples Education Societys College of Engineering, Aurangabad", courses: [{ name: "Computer Science and Engineering", pct: 82.97 }, { name: "Computer Science and Engineering (Data Science)", pct: 77.09 }, { name: "Electronics and Computer Engineering", pct: 61.24 }] },
+      { college: "6277 Dr. J.J. Magdum College of Engineering, Jaysingpur (Un-Aided Autonomous)", courses: [{ name: "Computer Science and Engineering", pct: 82.91 }, { name: "Information Technology", pct: 82.8 }] },
+      { college: "6468 Dr. Bapuji Salunkhe Institute of Engineering & Technology, Kolhapur", courses: [{ name: "Computer Science and Engineering (AI & ML)", pct: 82.83 }, { name: "Computer Science and Engineering", pct: 67.77 }] },
+      { college: "6275 Shivnagar Vidya Prasarak Mandals College of Engineering, Malegaon-Baramati", courses: [{ name: "Computer Engineering", pct: 82.69 }, { name: "Information Technology", pct: 68.4 }] },
+      { college: "6310 NMVPM Nutan Maharashtra Institute of Engineering & Technology, Talegaon", courses: [{ name: "Information Technology", pct: 82.69 }, { name: "Computer Science and Engineering (Artificial Intelligence)", pct: 81.14 }, { name: "Artificial Intelligence and Data Science", pct: 79.39 }] },
+      { college: "6203 Marathwada Mitra Mandals Institute of Technology, Lohgaon, Pune", courses: [{ name: "Computer Engineering", pct: 82.63 }, { name: "Artificial Intelligence and Data Science", pct: 81.37 }, { name: "Robotics and Artificial Intelligence", pct: 71.83 }] },
+      { college: "5171 Godavari College Of Engineering, Jalgaon", courses: [{ name: "Computer Engineering", pct: 82.61 }] },
+      { college: "6780 D.Y.Patil Technical Campus, Talsande, Kolhapur (Un-Aided Autonomous)", courses: [{ name: "Computer Science and Engineering", pct: 82.57 }, { name: "Computer Science and Engineering (Data Science)", pct: 81.89 }] },
+      { college: "2127 Mahatma Gandhi Missions College of Engineering, Nanded", courses: [{ name: "Computer Science and Engineering", pct: 82.46 }, { name: "Information Technology", pct: 81.53 }, { name: "Artificial Intelligence and Machine Learning", pct: 74.97 }] },
+      { college: "3194 Vidyavardhinis College of Engineering and Technology, Vasai", courses: [{ name: "Artificial Intelligence and Data Science", pct: 82.44 }, { name: "Computer Engineering", pct: 82.29 }, { name: "Information Technology", pct: 79.49 }, { name: "Computer Science and Engineering (Data Science)", pct: 75.2 }] },
+      { college: "6182 Sinhgad Institute of Technology and Science, Narhe, Pune", courses: [{ name: "Computer Engineering", pct: 82.44 }, { name: "Information Technology", pct: 82.25 }] },
+      { college: "2129 M.S. Bidve Engineering College, Latur", courses: [{ name: "Computer Science and Engineering (AI & ML)", pct: 82.4 }] },
+      { college: "3189 Bharati Vidyapeeth College of Engineering, Navi Mumbai", courses: [{ name: "Computer Engineering", pct: 82.29 }, { name: "Information Technology", pct: 74.97 }] },
+      { college: "6288 Bharati Vidyapeeths College of Engineering, Kolhapur", courses: [{ name: "Computer Science and Engineering (AI & ML)", pct: 82.18 }, { name: "Computer Science and Engineering", pct: 81.66 }] },
+      { college: "1012 Government College of Engineering, Yavatmal (Government)", courses: [{ name: "Computer Engineering", pct: 82.11 }] },
+      { college: "3203 Atharva College of Engineering, Malad (West), Mumbai", courses: [{ name: "Information Technology", pct: 82.11 }, { name: "Electronics and Computer Science", pct: 78.41 }] },
+      { college: "3042 Loknete Shamrao Peje Government College of Engineering, Ratnagiri (Government)", courses: [{ name: "Artificial Intelligence and Data Science", pct: 82.06 }] },
+      { college: "6794 Anantrao Pawar College of Engineering & Research, Pune", courses: [{ name: "Computer Engineering", pct: 82.06 }, { name: "Artificial Intelligence and Data Science", pct: 81.39 }, { name: "Information Technology", pct: 76.5 }] },
+      { college: "3216 Gharda Institute of Technology, Khed, Ratnagiri", courses: [{ name: "Computer Engineering", pct: 81.77 }, { name: "Computer Science and Engineering (AI & ML)", pct: 76.23 }] },
+      { college: "6649 TSSMs Bhivarabai Sawant College of Engineering and Research, Narhe, Pune", courses: [{ name: "Computer Engineering", pct: 81.77 }] },
+      { college: "4004 Government College of Engineering, Chandrapur (Government)", courses: [{ name: "Computer Science and Engineering", pct: 81.71 }] },
+      { college: "6307 Dhole Patil College of Engineering, Wagholi, Pune", courses: [{ name: "Computer Engineering", pct: 81.66 }, { name: "Information Technology", pct: 74.97 }] },
+      { college: "3190 Terna Engineering College, Nerul, Navi Mumbai", courses: [{ name: "Artificial Intelligence (AI) and Data Science", pct: 81.56 }, { name: "Information Technology", pct: 75.92 }, { name: "Computer Engineering", pct: 73.14 }] },
+      { college: "5181 R.H. Sapat College of Engineering, Nashik", courses: [{ name: "Artificial Intelligence and Data Science", pct: 81.26 }] },
+      { college: "6772 NBN Sinhgad Technical Institutes Campus, Pune", courses: [{ name: "Computer Engineering", pct: 81.26 }, { name: "Information Technology", pct: 80.0 }] },
+      { college: "4133 Smt. Radhikatai Pandav College of Engineering, Nagpur", courses: [{ name: "Computer Engineering", pct: 81.14 }] },
+      { college: "6834 Dr. D.Y. Patil College Of Engineering & Innovation, Talegaon", courses: [{ name: "Computer Engineering", pct: 81.14 }, { name: "Artificial Intelligence (AI) and Data Science", pct: 79.06 }] },
+      { college: "6187 Sinhgad Academy of Engineering, Kondhwa, Pune", courses: [{ name: "Computer Engineering", pct: 81.03 }, { name: "Information Technology", pct: 79.54 }] },
+      { college: "4175 Shri Shankarprasad Agnihotri College of Engineering, Wardha", courses: [{ name: "Computer Science and Engineering", pct: 80.91 }] },
+      { college: "5249 Trimurti Institute Of Technology, Jalgaon", courses: [{ name: "Computer Engineering", pct: 80.86 }] },
+      { college: "5330 PVGs College of Engineering & Dhamankar Institute of Management, Nashik", courses: [{ name: "Computer Engineering", pct: 80.81 }, { name: "Artificial Intelligence and Data Science", pct: 78.97 }, { name: "Information Technology", pct: 77.2 }] },
+      { college: "1114 Sipna College of Engineering & Technology, Amravati (Un-Aided Autonomous)", courses: [{ name: "Information Technology", pct: 80.46 }, { name: "Artificial Intelligence (AI) and Data Science", pct: 80.44 }] },
+      { college: "5418 Guru Gobind Singh College of Engineering & Research Centre, Nashik", courses: [{ name: "Artificial Intelligence (AI) and Data Science", pct: 80.46 }] },
+      { college: "6206 PDEA College of Engineering, Manjari, Pune", courses: [{ name: "Artificial Intelligence and Data Science", pct: 80.46 }, { name: "Computer Engineering", pct: 77.0 }, { name: "Information Technology", pct: 75.6 }] },
+      { college: "4648 R.V. Parankar College of Engineering & Technology, Arvi, Wardha", courses: [{ name: "Computer Science and Engineering", pct: 80.4 }] },
+      { college: "5380 Adsuls Technical Campus, Ahmednagar", courses: [{ name: "Information Technology", pct: 80.29 }, { name: "Computer Engineering", pct: 63.26 }] },
+      { college: "1128 Prof Ram Meghe College of Engineering and Management, Badnera", courses: [{ name: "Computer Science and Engineering", pct: 80.17 }, { name: "Information Technology", pct: 61.14 }] },
+      { college: "3033 Dr. Babasaheb Ambedkar Technological University, Lonere (University)", courses: [{ name: "Computer Engineering", pct: 80.06 }, { name: "Information Technology", pct: 79.71 }, { name: "Computer Science and Engineering", pct: 77.58 }] },
+      { college: "6185 Sinhgad Institute of Technology, Pune", courses: [{ name: "Computer Engineering", pct: 80.0 }, { name: "Information Technology", pct: 78.74 }] },
+      { college: "6217 Ashokrao Mane Group of Institutions, Kolhapur", courses: [{ name: "Computer Science and Engineering", pct: 80.0 }, { name: "Artificial Intelligence (AI) and Data Science", pct: 69.37 }, { name: "Electronics and Computer Engineering", pct: 65.43 }, { name: "Artificial Intelligence and Machine Learning", pct: 65.18 }] },
+      { college: "6991 Dr. D.Y. Patil Technical Campus, Varale, Talegaon, Pune", courses: [{ name: "Artificial Intelligence and Data Science", pct: 79.94 }, { name: "Computer Engineering", pct: 79.6 }, { name: "Computer Science", pct: 73.71 }, { name: "Electronics and Computer Engineering", pct: 63.29 }] },
+      { college: "3188 Vasantdada Patil Pratishthans College Of Engineering, Sion, Mumbai", courses: [{ name: "Computer Engineering", pct: 79.81 }, { name: "Computer Science and Engineering (AI & ML)", pct: 79.33 }, { name: "Information Technology", pct: 71.19 }, { name: "Electronics and Computer Science", pct: 65.45 }] },
+      { college: "2252 Marathwada Shikshan Prasarak Mandals SSIEMS, Parbhani", courses: [{ name: "Computer Science and Engineering", pct: 79.77 }] },
+      { college: "6769 Rasiklal Dhariwal Sinhgad Technical Campus, Warje, Pune", courses: [{ name: "Computer Engineering", pct: 79.77 }, { name: "Information Technology", pct: 78.91 }] },
+      { college: "3224 G.V. Acharya Institute of Engineering and Technology, Karjat", courses: [{ name: "Computer Engineering", pct: 79.69 }] },
+      { college: "3200 Finolex Academy of Management and Technology, Ratnagiri", courses: [{ name: "Information Technology", pct: 79.54 }] },
+      { college: "5390 Loknete Gopinathji Munde Institute of Engineering, Nashik", courses: [{ name: "Computer Engineering", pct: 79.54 }, { name: "Information Technology", pct: 79.43 }, { name: "Artificial Intelligence and Machine Learning", pct: 67.09 }] },
+      { college: "6839 Dr. D Y Patil Pratishthans College of Engineering, Kolhapur", courses: [{ name: "Computer Science and Engineering", pct: 79.49 }, { name: "Computer Science and Engineering (Data Science)", pct: 79.09 }] },
+      { college: "6803 Sant Gajanan Maharaj College of Engineering, Gadhinglaj", courses: [{ name: "Computer Science and Engineering", pct: 79.38 }] },
+      { college: "6293 Bramhadevdada Mane Institute of Technology, Solapur", courses: [{ name: "Computer Science and Engineering", pct: 79.26 }] },
+      { college: "5381 Shri. Jaykumar Rawal Institute of Technology, Dondaicha", courses: [{ name: "Computer Science and Engineering", pct: 79.2 }, { name: "Artificial Intelligence and Data Science", pct: 65.42 }] },
+      { college: "3192 Smt. Indira Gandhi College of Engineering, Navi Mumbai", courses: [{ name: "Computer Engineering", pct: 79.1 }, { name: "Computer Science and Engineering (IoT and Cyber Security)", pct: 67.89 }] },
+      { college: "5109 Sandip Institute of Technology and Research Centre, Nashik (Un-Aided Autonomous)", courses: [{ name: "Computer Engineering", pct: 79.09 }, { name: "Artificial Intelligence and Machine Learning", pct: 78.51 }, { name: "Information Technology", pct: 75.89 }, { name: "Artificial Intelligence and Data Science", pct: 75.83 }, { name: "Computer Science", pct: 64.0 }] },
+      { college: "6808 Keystone School of Engineering, Pune", courses: [{ name: "Artificial Intelligence (AI) and Data Science", pct: 79.03 }, { name: "Computer Engineering", pct: 67.43 }] },
+      { college: "6269 Pad. Vasantraodada Patil Institute of Technology, Sangli", courses: [{ name: "Computer Science and Engineering", pct: 78.97 }, { name: "Computer Science and Engineering (AI and Data Science)", pct: 78.63 }, { name: "Electronics and Computer Science", pct: 72.34 }, { name: "Electrical and Computer Engineering", pct: 70.17 }] },
+      { college: "1119 Anuradha Engineering College, Chikhali", courses: [{ name: "Computer Science and Engineering", pct: 78.86 }] },
+      { college: "3257 Vidya Prasarak Mandals College of Engineering, Thane", courses: [{ name: "Information Technology", pct: 78.75 }, { name: "Computer Engineering", pct: 65.22 }] },
+      { college: "6901 MAEERs MIT College of Railway Engineering and Research, Barshi", courses: [{ name: "Computer Science and Engineering", pct: 78.74 }] },
+      { college: "5162 Amrutvahini College of Engineering, Sangamner", courses: [{ name: "Computer Engineering", pct: 78.67 }, { name: "Information Technology", pct: 78.23 }, { name: "Electronics and Computer Engineering", pct: 76.69 }, { name: "Artificial Intelligence and Data Science", pct: 76.34 }] },
+      { college: "3193 Shivajirao Jondhale College of Engineering, Dombivali, Mumbai", courses: [{ name: "Computer Engineering", pct: 78.57 }] },
+      { college: "2138 Matsyodari College of Engineering and Technology, Jalna", courses: [{ name: "Computer Science and Engineering", pct: 78.23 }] },
+      { college: "1107 P.R. Pote Patil College of Engineering & Management, Amravati (Un-Aided Autonomous)", courses: [{ name: "Artificial Intelligence and Data Science", pct: 78.17 }, { name: "Computer Science and Engineering (AI & ML)", pct: 77.03 }] },
+      { college: "6762 Nanasaheb Mahadik College of Engineering, Walwa, Sangli", courses: [{ name: "Computer Science and Engineering", pct: 77.77 }] },
+      { college: "4197 Agnihotri College of Engineering, Sindhi (Meghe)", courses: [{ name: "Computer Science and Engineering", pct: 77.76 }] },
+      { college: "4304 Cummins College of Engineering For Women, Nagpur", courses: [{ name: "Computer Engineering", pct: 77.54 }] },
+      { college: "5256 Matoshri Asarabai Polytechnic, Nashik", courses: [{ name: "Computer Engineering", pct: 77.5 }] },
+      { college: "2112 Shreeyash College of Engineering and Technology, Aurangabad", courses: [{ name: "Computer Science and Engineering (AI & ML)", pct: 77.29 }, { name: "Computer Science and Engineering", pct: 75.04 }, { name: "Computer Science and Engineering (Data Science)", pct: 74.97 }] },
+      { college: "5161 Dr. Vithalrao Vikhe Patil College of Engineering, Ahmednagar", courses: [{ name: "Computer Engineering", pct: 77.14 }, { name: "Artificial Intelligence and Data Science", pct: 75.0 }, { name: "Information Technology", pct: 69.54 }] },
+      { college: "5303 Parikrama Kashti Shrigondha, Ahmednagar", courses: [{ name: "Computer Engineering", pct: 76.91 }] },
+      { college: "4163 Rajiv Gandhi College of Engineering Research & Technology, Chandrapur", courses: [{ name: "Computer Science and Engineering", pct: 76.86 }] },
+      { college: "2130 Terna College of Engineering, Osmanabad", courses: [{ name: "Computer Science and Engineering", pct: 76.69 }, { name: "Artificial Intelligence and Data Science", pct: 68.91 }] },
+      { college: "3470 Yashwantrao Bhonsale Institute of Technology", courses: [{ name: "Computer Engineering", pct: 76.57 }, { name: "Computer Science and Engineering", pct: 74.3 }] },
+      { college: "6270 Karmaveer Bhaurao Patil College of Engineering, Satara", courses: [{ name: "Artificial Intelligence and Data Science", pct: 76.46 }, { name: "Computer Science and Engineering", pct: 73.49 }] },
+      { college: "6634 KJEIs Trinity Academy of Engineering, Yewalewadi, Pune", courses: [{ name: "Computer Engineering", pct: 76.46 }, { name: "Information Technology", pct: 73.89 }] },
+      { college: "6319 SB Patil College of Engineering, Indapur", courses: [{ name: "Computer Engineering", pct: 76.29 }] },
+      { college: "1117 Babasaheb Naik College Of Engineering, Pusad", courses: [{ name: "Computer Science and Engineering", pct: 76.23 }] },
+      { college: "3187 Datta Meghe College of Engineering, Airoli, Navi Mumbai", courses: [{ name: "Computer Engineering", pct: 76.06 }, { name: "Artificial Intelligence and Data Science", pct: 69.0 }, { name: "Information Technology", pct: 66.46 }] },
+      { college: "6144 Genba Sopanrao Moze College of Engineering, Baner-Balewadi, Pune", courses: [{ name: "Computer Engineering", pct: 76.0 }, { name: "Information Technology", pct: 70.59 }, { name: "Artificial Intelligence and Machine Learning", pct: 68.89 }, { name: "Artificial Intelligence and Data Science", pct: 68.57 }] },
+      { college: "5125 Sir Visvesvaraya Institute of Technology, Nashik", courses: [{ name: "Computer Engineering", pct: 75.94 }] },
+      { college: "3202 Rajendra Mane College of Engineering & Technology, Ratnagiri", courses: [{ name: "Computer Engineering", pct: 75.73 }] },
+      { college: "2254 Vilasrao Deshmukh Foundation Group of Institutions, Latur", courses: [{ name: "Information Technology", pct: 75.53 }] },
+      { college: "3471 New Horizon Institute of Technology & Management, Thane", courses: [{ name: "Artificial Intelligence and Data Science", pct: 75.39 }, { name: "Computer Engineering", pct: 65.43 }] },
+      { college: "4147 K.D.K. College of Engineering, Nagpur (Un-Aided Autonomous)", courses: [{ name: "Computer Science and Engineering", pct: 75.35 }, { name: "Information Technology", pct: 65.26 }] },
+      { college: "6758 Sahyadri Valley College of Engineering & Technology, Pune", courses: [{ name: "Computer Engineering", pct: 75.2 }] },
+      { college: "6138 Parvatibai Genba Moze College of Engineering, Wagholi, Pune", courses: [{ name: "Computer Engineering", pct: 75.13 }, { name: "Information Technology", pct: 72.59 }, { name: "Artificial Intelligence (AI) and Data Science", pct: 72.56 }] },
+      { college: "6303 Dr. Daulatrao Aher College of Engineering, Karad", courses: [{ name: "Artificial Intelligence and Data Science", pct: 75.0 }] },
+      { college: "2522 Sandipani Technical Campus, Latur", courses: [{ name: "Computer Engineering", pct: 74.97 }, { name: "Artificial Intelligence and Data Science", pct: 61.12 }] },
+      { college: "3467 iMEET, Khalapur, Raigad", courses: [{ name: "Computer Engineering", pct: 74.97 }] },
+      { college: "6304 Adarsh Institute of Technology and Research Centre, Vita, Sangli", courses: [{ name: "Computer Science and Engineering", pct: 74.97 }] },
+      { college: "3175 MGMs College of Engineering and Technology, Kamothe, Navi Mumbai", courses: [{ name: "Information Technology", pct: 74.0 }, { name: "Computer Science and Engineering (AI & ML)", pct: 72.39 }] },
+      { college: "1265 Mauli College of Engineering and Technology, Shegaon", courses: [{ name: "Computer Science and Engineering", pct: 73.49 }, { name: "Information Technology", pct: 73.09 }] },
+      { college: "1123 Dr. Rajendra Gode Institute of Technology & Research, Amravati", courses: [{ name: "Computer Science and Engineering", pct: 73.37 }] },
+      { college: "4144 Nagpur Institute of Technology, Nagpur", courses: [{ name: "Computer Science and Engineering", pct: 73.37 }] },
+      { college: "5182 Late Gambhirrao Sapkal College of Engineering, Nashik", courses: [{ name: "Artificial Intelligence (AI) and Data Science", pct: 73.09 }, { name: "Computer Engineering", pct: 70.91 }] },
+      { college: "5399 Sanghavi College of Engineering, Nashik", courses: [{ name: "Computer Engineering", pct: 73.09 }] },
+      { college: "6759 Shree Ramchandra College of Engineering, Lonikand, Pune", courses: [{ name: "Computer Engineering", pct: 72.86 }, { name: "Artificial Intelligence and Data Science", pct: 70.17 }] },
+      { college: "6767 Suman Ramesh Tulsiani Technical Campus, Kamshet, Pune", courses: [{ name: "Computer Engineering", pct: 72.8 }] },
+      { college: "4188 Ballarpur Institute of Technology, Chandrapur", courses: [{ name: "Computer Science and Engineering", pct: 72.74 }] },
+      { college: "6305 Late Narayandas Chhabada Institute of Engineering & Technology, Satara", courses: [{ name: "Computer Science and Engineering", pct: 72.69 }] },
+      { college: "5382 Shri Chhatrapati Shivaji Maharaj College of Engineering, Ahmednagar", courses: [{ name: "Artificial Intelligence (AI) and Data Science", pct: 72.63 }, { name: "Computer Engineering", pct: 64.86 }] },
+      { college: "6770 SKN Sinhgad Institute of Technology & Science, Kusgaon, Pune", courses: [{ name: "Computer Engineering", pct: 72.35 }, { name: "Information Technology", pct: 72.0 }] },
+      { college: "6878 Dr. A.D. Shinde College Of Engineering, Gadhinglaj, Kolhapur", courses: [{ name: "Computer Science and Engineering", pct: 72.11 }] },
+      { college: "3277 Pravin Rohidas Patil College of Engineering & Technology", courses: [{ name: "Computer Engineering", pct: 72.0 }] },
+      { college: "6320 K.J. College of Engineering & Management Research, Pisoli, Pune", courses: [{ name: "Computer Engineering", pct: 71.77 }] },
+      { college: "1121 Shri Hanuman Vyayam Prasarak Mandals College of Engineering & Technology, Amravati", courses: [{ name: "Computer Science and Engineering", pct: 71.75 }, { name: "Information Technology", pct: 63.43 }] },
+      { college: "5124 S.N.D. College of Engineering & Research, Babulgaon, Nashik", courses: [{ name: "Computer Engineering", pct: 71.71 }] },
+      { college: "5130 Brahma Valley College of Engineering & Research, Nashik", courses: [{ name: "Computer Engineering", pct: 71.49 }] },
+      { college: "6815 Vidya Prasarini Sabhas College of Engineering & Technology, Lonavala", courses: [{ name: "Computer Engineering", pct: 70.88 }] },
+      { college: "3221 VIVA Institute of Technology, Virar", courses: [{ name: "Computer Science and Engineering (AI & ML)", pct: 70.75 }, { name: "Computer Engineering", pct: 66.86 }] },
+      { college: "5177 Matoshri College of Engineering and Research Centre, Nashik (Un-Aided Autonomous)", courses: [{ name: "Artificial Intelligence and Data Science", pct: 70.75 }, { name: "Computer Engineering", pct: 54.22 }] },
+      { college: "2250 Aurangabad College of Engineering, Aurangabad", courses: [{ name: "Computer Science and Engineering", pct: 70.63 }] },
+      { college: "1268 Siddhivinayak Technical Campus, Nile", courses: [{ name: "Computer Science and Engineering", pct: 70.34 }] },
+      { college: "1182 Padmashri Dr. V.B. Kolte College of Engineering, Buldhana", courses: [{ name: "Computer Science and Engineering", pct: 70.29 }] },
+      { college: "6219 Bharat-Ratna Indira Gandhi College of Engineering, Solapur", courses: [{ name: "Computer Science and Engineering", pct: 69.83 }] },
+      { college: "2131 Shree Tuljabhavani College of Engineering, Tuljapur", courses: [{ name: "Computer Science and Engineering", pct: 69.2 }] },
+      { college: "6402 New Institute of Technology, Kolhapur", courses: [{ name: "Computer Science and Engineering", pct: 69.19 }, { name: "Computer Science and Engineering (AI & ML)", pct: 67.09 }] },
+      { college: "5396 College of Engineering and Technology, North Maharashtra Knowledge City, Jalgaon", courses: [{ name: "Computer Engineering", pct: 69.17 }] },
+      { college: "4135 Shree Govindrao Vanjari College of Engineering & Technology, Nagpur", courses: [{ name: "Computer Science and Engineering", pct: 69.03 }] },
+      { college: "5409 Rajiv Gandhi College of Engineering, Ahmednagar", courses: [{ name: "Computer Engineering", pct: 68.8 }] },
+      { college: "2146 K.T. Patil College of Engineering and Technology, Osmanabad", courses: [{ name: "Computer Science and Engineering", pct: 68.74 }] },
+      { college: "4679 Karanjekar College of Engineering & Management, Sakoli", courses: [{ name: "Computer Science and Engineering", pct: 68.09 }] },
+      { college: "3353 Dilkap Research Institute Of Engineering and Management Studies, Karjat", courses: [{ name: "Computer Engineering", pct: 68.06 }] },
+      { college: "6324 Shri Chhatrapati Shivajiraje College of Engineering, Bhor", courses: [{ name: "Computer Engineering", pct: 68.0 }] },
+      { college: "5139 Pravara Rural College of Engineering, Ahmednagar", courses: [{ name: "Computer Engineering", pct: 67.89 }, { name: "Information Technology", pct: 64.23 }] },
+      { college: "4134 Guru Nanak Institute of Engineering & Technology, Nagpur", courses: [{ name: "Computer Science and Engineering", pct: 67.6 }, { name: "Computer Science and Engineering (Data Science)", pct: 67.37 }] },
+      { college: "6757 Yashoda Technical Campus, Satara", courses: [{ name: "Computer Science and Engineering", pct: 67.6 }] },
+      { college: "6768 P.K. Technical Campus, Pune", courses: [{ name: "Computer Engineering", pct: 67.6 }] },
+      { college: "1127 Jagdambha College of Engineering and Technology, Yavatmal (Un-Aided Autonomous)", courses: [{ name: "Computer Engineering", pct: 67.42 }] },
+      { college: "5169 Gangamai College of Engineering, Dhule", courses: [{ name: "Computer Engineering", pct: 67.31 }] },
+      { college: "5331 Sandip Institute of Engineering & Management, Nashik", courses: [{ name: "Computer Engineering", pct: 67.03 }] },
+      { college: "2641 Dr. V.K. Patil College of Engineering & Technology", courses: [{ name: "Computer Science and Engineering", pct: 66.97 }] },
+      { college: "6756 Fabtech Technical Campus, Sangola", courses: [{ name: "Computer Science and Engineering", pct: 66.91 }] },
+      { college: "4151 Tulsiramji Gaikwad Patil College of Engineering & Technology, Nagpur (Un-Aided Autonomous)", courses: [{ name: "Information Technology", pct: 66.68 }, { name: "Computer Science and Engineering", pct: 66.29 }, { name: "Computer Science and Engineering (Data Science)", pct: 65.43 }] },
+      { college: "5168 J.T.Mahajan College of Engineering, Faizpur", courses: [{ name: "Computer Engineering", pct: 66.17 }] },
+      { college: "5103 Late Bapusaheb Shivaji Rao Deore College of Engineering, Dhule", courses: [{ name: "Computer Engineering", pct: 66.0 }] },
+      { college: "2516 ICEEM, Aurangabad", courses: [{ name: "Artificial Intelligence and Machine Learning", pct: 65.79 }] },
+      { college: "2135 Hi-Tech Institute of Technology, Aurangabad", courses: [{ name: "Computer Science and Engineering", pct: 65.35 }] },
+      { college: "4143 Mandukarrao Pandav College of Engineering, Bhandara", courses: [{ name: "Computer Engineering", pct: 65.25 }] },
+      { college: "1126 Takshashila Institute of Engineering & Technology, Amravati", courses: [{ name: "Computer Science and Engineering", pct: 65.03 }] },
+      { college: "1180 Sanmati Engineering College, Washim", courses: [{ name: "Computer Science and Engineering", pct: 64.91 }] },
+      { college: "4285 V M Institute of Engineering and Technology, Nagpur", courses: [{ name: "Information Technology", pct: 63.76 }] },
+      { college: "5106 Khandesh College of Engineering And Management, Jalgaon", courses: [{ name: "Computer Engineering", pct: 63.71 }] },
+      { college: "4613 Suryodaya College of Engineering & Technology, Nagpur (Un-Aided Autonomous)", courses: [{ name: "Computer Engineering", pct: 63.58 }] },
+      { college: "5408 Vidya Niketan College of Engineering, Ahmednagar", courses: [{ name: "Computer Engineering", pct: 63.49 }] },
+      { college: "6625 Universal College of Engineering & Research, Pune", courses: [{ name: "Computer Engineering", pct: 63.12 }] },
+      { college: "2116 Matoshri Pratishans Group of Institutions, Nanded", courses: [{ name: "Computer Science and Engineering", pct: 62.59 }] },
+      { college: "5401 Jawahar Education Societys Institute of Technology, Nashik", courses: [{ name: "Computer Engineering", pct: 58.34 }] },
+      { college: "2137 Nagnathappa Halge Engineering College, Beed", courses: [{ name: "Computer Science and Engineering", pct: 57.56 }] },
+      { college: "6635 Samarth College of Engineering and Management", courses: [{ name: "Computer Engineering", pct: 57.54 }] },
+      { college: "1116 Shri Shivaji Education Societys College of Engineering and Technology, Akola", courses: [{ name: "Computer Science and Engineering", pct: 56.63 }] },
+      { college: "6632 Navsahyadri Education Societys Group of Institutions", courses: [{ name: "Artificial Intelligence and Machine Learning", pct: 55.6 }] }
+    ];
+
+    const COURSE_TYPES = [...new Set(RAW.flatMap(c => c.courses.map(x => x.name)))].sort();
+    const sel = document.getElementById('course-filter');
+    COURSE_TYPES.forEach(ct => { const o = document.createElement('option'); o.value = ct; o.textContent = ct; sel.appendChild(o); });
+
+    function getTierClass(pct) {
+      if (pct >= 82) return 'tier-safe';
+      if (pct >= 78) return 'tier-close';
+      return 'tier-below';
+    }
+
+    function getFiltered() {
+      const q = document.getElementById('search').value.toLowerCase();
+      const ct = document.getElementById('course-filter').value;
+      const sortDir = document.getElementById('sort-sel').value;
+      let data = RAW.map(c => {
+        let courses = c.courses;
+        if (ct) courses = courses.filter(x => x.name === ct);
+        return { ...c, courses };
+      }).filter(c => c.courses.length > 0 && c.college.toLowerCase().includes(q));
+      data.sort((a, b) => {
+        const ma = Math.max(...a.courses.map(x => x.pct));
+        const mb = Math.max(...b.courses.map(x => x.pct));
+        return sortDir === 'desc' ? mb - ma : ma - mb;
+      });
+      return data;
+    }
+
+    function render() {
+      currentPage = 0;
+      renderPage();
+    }
+
+    function changePage(dir) {
+      const data = getFiltered();
+      const total = Math.ceil(data.length / PER_PAGE);
+      currentPage = Math.max(0, Math.min(total - 1, currentPage + dir));
+      renderPage();
+    }
+
+    function toggleCollege(idx) {
+      expanded[idx] = !expanded[idx];
+      renderPage(true);
+    }
+
+    function renderPage(preserve) {
+      const data = getFiltered();
+      const total = Math.ceil(data.length / PER_PAGE);
+      const start = currentPage * PER_PAGE;
+      const pageData = data.slice(start, start + PER_PAGE);
+
+      const allCourses = data.flatMap(c => c.courses);
+      const closeCount = allCourses.filter(x => x.pct >= 82 && x.pct <= MY_PCT).length;
+      document.getElementById('cnt-col').textContent = data.length;
+      document.getElementById('cnt-crs').textContent = allCourses.length;
+      document.getElementById('cnt-close').textContent = closeCount;
+
+      const list = document.getElementById('list');
+      list.innerHTML = pageData.map((c, i) => {
+        const globalIdx = start + i;
+        const isOpen = expanded[globalIdx];
+        const maxPct = Math.max(...c.courses.map(x => x.pct));
+        const code = c.college.split(' ')[0];
+        const name = c.college.slice(code.length + 1);
+        return `<div class="college-card">
+      <div class="college-header" onclick="toggleCollege(${globalIdx})">
+        <div>
+          <div class="college-code">Code: ${code}</div>
+          <div class="college-name">${name}</div>
+        </div>
+        <i class="ti ti-chevron-down toggle-icon" style="transform:${isOpen ? 'rotate(180deg)' : 'none'}" aria-hidden="true"></i>
+      </div>
+      ${isOpen ? `<div class="college-courses">${c.courses.map(x => {
+          const tc = getTierClass(x.pct);
+          const barW = Math.round((x.pct / MY_PCT) * 100);
+          return `<div class="course-row">
+          <span class="course-name">${x.name}</span>
+          <div class="ews-wrap ${tc}">
+            <div class="ews-bar"><div class="ews-fill" style="width:${barW}%"></div></div>
+            <span class="ews-pct">${x.pct}%</span>
+          </div>
+        </div>`;
+        }).join('')}</div>` : ''}
+    </div>`;
+      }).join('');
+
+      document.getElementById('page-info').textContent = `Showing ${start + 1}–${Math.min(start + PER_PAGE, data.length)} of ${data.length} colleges`;
+      document.getElementById('btn-prev').disabled = currentPage === 0;
+      document.getElementById('btn-next').disabled = currentPage >= total - 1;
+    }
+
+    render();
+  </script>
+
+</body>
+
+</html>
